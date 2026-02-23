@@ -1,0 +1,206 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی اعداد رادیکالی</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v1.5.0/dist/font/font-face.css');
+        :root {
+            --primary-color: #1976D2; /* آبی */
+            --secondary-color: #FFC107; /* زرد */
+            --background-color: #e3f2fd;
+            --card-color: #ffffff;
+            --text-color: #212121;
+            --correct-color: #4CAF50;
+            --wrong-color: #F44336;
+        }
+        body {
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            background-color: var(--card-color);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        #question-display {
+            background-color: #bbdefb;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-size: 1.7em;
+            font-weight: bold;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .option-button {
+            background-color: #ffffff;
+            color: var(--text-color);
+            border: 2px solid var(--primary-color);
+            padding: 15px 10px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .option-button:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .feedback {
+            min-height: 40px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        .score-panel {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #eceff1;
+            border-radius: 8px;
+            font-size: 1.1em;
+        }
+        .next-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: none;
+        }
+        .next-button:hover {
+            background-color: #1565C0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>ساده‌سازی رادیکال</h1>
+        <div id="question-display">منتظر بمانید...</div>
+        
+        <div class="options-grid" id="options-container">
+        </div>
+
+        <div id="feedback" class="feedback"></div>
+        
+        <button class="next-button" id="next-btn" onclick="nextQuestion()">سوال بعدی</button>
+        
+        <div class="score-panel">
+            امتیاز: <span id="score">0</span> / <span id="total-questions">0</span>
+        </div>
+    </div>
+
+    <script>
+        // توابع ریاضی برای ساخت رشته رادیکال (به جای استفاده از کتابخانه KaTeX که در محیط مرورگر ساده ممکن نیست)
+        function formatRadical(a, b) {
+            if (b === 1) return `\\sqrt{${a}}`;
+            return `${b}\\sqrt{${a}}`;
+        }
+
+        const questions = [
+            { number: 12, simplified: "2√3", choices: ["2√3", "3√2", "√12", "4√3"] }, // 2*sqrt(3)
+            { number: 50, simplified: "5√2", choices: ["5√2", "2√5", "10√5", "√50"] }, // 5*sqrt(2)
+            { number: 75, simplified: "5√3", choices: ["3√5", "5√3", "25√3", "√75"] }, // 5*sqrt(3)
+            { number: 32, simplified: "4√2", choices: ["4√2", "2√8", "8√2", "√32"] }, // 4*sqrt(2)
+            { number: 200, simplified: "10√2", choices: ["10√2", "2√100", "100√2", "√200"] } // 10*sqrt(2)
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        const totalQuestions = questions.length;
+
+        const questionDisplay = document.getElementById('question-display');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackDiv = document.getElementById('feedback');
+        const nextBtn = document.getElementById('next-btn');
+        const scoreSpan = document.getElementById('score');
+        const totalSpan = document.getElementById('total-questions');
+
+        totalSpan.textContent = totalQuestions;
+
+        function loadQuestion() {
+            const qData = questions[currentQuestionIndex];
+            
+            // نمایش سوال به صورت متنی (در محیط واقعی بهتر است از KaTeX برای نمایش رادیکال استفاده شود)
+            questionDisplay.innerHTML = `ساده شده $\\sqrt{${qData.number}}$ کدام است؟`; 
+            
+            optionsContainer.innerHTML = '';
+            feedbackDiv.textContent = '';
+            feedbackDiv.style.backgroundColor = 'transparent';
+            nextBtn.style.display = 'none';
+
+            qData.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = choice;
+                button.onclick = () => checkAnswer(choice, qData.simplified);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selectedChoice, correctAnswer) {
+            document.querySelectorAll('.option-button').forEach(btn => btn.disabled = true);
+            
+            if (selectedChoice === correctAnswer) {
+                score++;
+                feedbackDiv.textContent = '✅ دقیقاً درست است!';
+                feedbackDiv.style.backgroundColor = 'var(--correct-color)40';
+            } else {
+                feedbackDiv.textContent = `❌ پاسخ اشتباه بود. جواب صحیح: ${correctAnswer}`;
+                feedbackDiv.style.backgroundColor = 'var(--wrong-color)40';
+            }
+            
+            scoreSpan.textContent = score;
+            nextBtn.style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < totalQuestions) {
+                loadQuestion();
+            } else {
+                questionDisplay.innerHTML = "پایان مراحل رادیکال‌ها!";
+                optionsContainer.innerHTML = `<p>امتیاز شما: ${score} از ${totalQuestions}</p>`;
+                nextBtn.style.display = 'none';
+            }
+        }
+
+        // شروع بازی
+        loadQuestion();
+    </script>
+</body>
+</html>

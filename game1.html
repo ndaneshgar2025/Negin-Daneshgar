@@ -1,0 +1,199 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی اعداد گویا</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50; /* سبز */
+            --secondary-color: #FF9800; /* نارنجی */
+            --background-color: #f0f4f7;
+            --card-color: #ffffff;
+            --text-color: #333;
+            --correct-color: #4CAF50;
+            --wrong-color: #F44336;
+        }
+        body {
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            background-color: var(--card-color);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        #question-display {
+            background-color: #e8f5e9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            font-weight: bold;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .option-button {
+            background-color: #ffffff;
+            color: var(--text-color);
+            border: 2px solid var(--secondary-color);
+            padding: 15px 10px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .option-button:hover {
+            background-color: var(--secondary-color);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+        .feedback {
+            min-height: 40px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 20px;
+            transition: background-color 0.5s;
+        }
+        .score-panel {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #cfd8dc;
+            border-radius: 8px;
+            font-size: 1.1em;
+        }
+        .next-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: none; /* مخفی تا زمان پاسخ */
+        }
+        .next-button:hover {
+            background-color: #388E3C;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>بازی تبدیل اعداد گویا</h1>
+        <div id="question-display">منتظر بمانید...</div>
+        
+        <div class="options-grid" id="options-container">
+            <!-- دکمه‌ها توسط جاوا اسکریپت اضافه می‌شوند -->
+        </div>
+
+        <div id="feedback" class="feedback"></div>
+        
+        <button class="next-button" id="next-btn" onclick="nextQuestion()">سوال بعدی</button>
+        
+        <div class="score-panel">
+            امتیاز: <span id="score">0</span> / <span id="total-questions">0</span>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            { text: "معادل کسری 0.75 چیست؟", answer: "3/4", choices: ["1/7", "3/4", "4/5", "7/10"] },
+            { text: "معادل اعشاری 5/8 چیست؟", answer: "0.625", choices: ["0.5", "0.625", "0.8", "0.58"] },
+            { text: "معادل کسری 1.2 را پیدا کنید.", answer: "6/5", choices: ["1/2", "12/10", "6/5", "1/20"] },
+            { text: "معادل اعشاری -3/5 چیست؟", answer: "-0.6", choices: ["-0.3", "-0.6", "-0.5", "-0.75"] },
+            { text: "معادل ساده شده 15/25 چیست؟", answer: "3/5", choices: ["5/3", "1/5", "3/5", "15/25"] }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        const totalQuestions = questions.length;
+
+        const questionDisplay = document.getElementById('question-display');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackDiv = document.getElementById('feedback');
+        const nextBtn = document.getElementById('next-btn');
+        const scoreSpan = document.getElementById('score');
+        const totalSpan = document.getElementById('total-questions');
+
+        totalSpan.textContent = totalQuestions;
+
+        function loadQuestion() {
+            const qData = questions[currentQuestionIndex];
+            questionDisplay.textContent = qData.text;
+            optionsContainer.innerHTML = '';
+            feedbackDiv.textContent = '';
+            feedbackDiv.style.backgroundColor = 'transparent';
+            nextBtn.style.display = 'none';
+
+            qData.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = choice;
+                button.onclick = () => checkAnswer(choice, qData.answer);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selectedChoice, correctAnswer) {
+            // غیر فعال کردن دکمه‌ها پس از انتخاب
+            document.querySelectorAll('.option-button').forEach(btn => btn.disabled = true);
+            
+            if (selectedChoice === correctAnswer) {
+                score++;
+                feedbackDiv.textContent = '✅ درست است! آفرین.';
+                feedbackDiv.style.backgroundColor = 'var(--correct-color)40'; // رنگ سبز روشن
+            } else {
+                feedbackDiv.textContent = `❌ اشتباه است. جواب صحیح: ${correctAnswer}`;
+                feedbackDiv.style.backgroundColor = 'var(--wrong-color)40'; // رنگ قرمز روشن
+            }
+            
+            scoreSpan.textContent = score;
+            nextBtn.style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < totalQuestions) {
+                loadQuestion();
+            } else {
+                questionDisplay.textContent = "بازی تمام شد!";
+                optionsContainer.innerHTML = `<p>نتیجه نهایی شما: ${score} از ${totalQuestions}</p>`;
+                nextBtn.style.display = 'none';
+            }
+        }
+
+        // شروع بازی
+        loadQuestion();
+    </script>
+</body>
+</html>

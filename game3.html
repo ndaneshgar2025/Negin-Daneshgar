@@ -1,0 +1,260 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی غربالگری اعداد اول</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v1.5.0/dist/font/font-face.css');
+        :root {
+            --primary-color: #E91E63; /* صورتی تیره */
+            --secondary-color: #00BCD4; /* فیروزه‌ای */
+            --background-color: #f8bbd0;
+            --card-color: #ffffff;
+            --text-color: #333;
+            --correct-color: #4CAF50;
+            --wrong-color: #F44336;
+        }
+        body {
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            background-color: var(--card-color);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+        }
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.7em;
+        }
+        #question-display {
+            background-color: #fce4ec;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #number-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            gap: 5px;
+            margin-bottom: 25px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .num-box {
+            background-color: #f0f0f0;
+            color: var(--text-color);
+            padding: 10px 5px;
+            border-radius: 5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            border: 1px solid #ccc;
+        }
+        .num-box:hover {
+            background-color: #e0e0e0;
+        }
+        .selected {
+            background-color: var(--secondary-color) !important;
+            color: var(--text-color);
+            font-weight: bold;
+            border-color: var(--secondary-color);
+        }
+        .prime-correct {
+            background-color: var(--correct-color) !important;
+            color: white;
+            transform: scale(1.05);
+            border-color: var(--correct-color);
+        }
+        .composite-wrong {
+            background-color: var(--wrong-color) !important;
+            color: white;
+            opacity: 0.7;
+            border-color: var(--wrong-color);
+        }
+        .feedback {
+            min-height: 40px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        .score-panel {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fce4ec;
+            border-radius: 8px;
+            font-size: 1.1em;
+        }
+        .next-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: none;
+        }
+        .next-button:hover {
+            background-color: #C2185B;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>غربالگری اعداد اول</h1>
+        <div id="question-display"></div>
+        
+        <div id="number-grid"></div>
+
+        <div id="feedback" class="feedback"></div>
+        
+        <button class="next-button" id="next-btn" onclick="nextQuestion()">ادامه</button>
+        
+        <div class="score-panel">
+            امتیاز: <span id="score">0</span> / <span id="total-questions">0</span>
+        </div>
+    </div>
+
+    <script>
+        // تابع کمکی برای چک کردن اول بودن (ساده سازی منطق بازی)
+        function isPrime(num) {
+            if (num <= 1) return false;
+            for (let i = 2; i <= Math.sqrt(num); i++) {
+                if (num % i === 0) return false;
+            }
+            return true;
+        }
+
+        const gameSets = [
+            { limit: 30, correctPrimes: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29] },
+            { limit: 50, correctPrimes: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47] },
+            { limit: 20, correctPrimes: [2, 3, 5, 7, 11, 13, 17, 19] }
+        ];
+
+        let currentSetIndex = 0;
+        let score = 0;
+        const totalQuestions = gameSets.length;
+
+        const numberGrid = document.getElementById('number-grid');
+        const questionDisplay = document.getElementById('question-display');
+        const feedbackDiv = document.getElementById('feedback');
+        const nextBtn = document.getElementById('next-btn');
+        const scoreSpan = document.getElementById('score');
+        const totalSpan = document.getElementById('total-questions');
+
+        totalSpan.textContent = totalQuestions;
+
+        function generateGrid(limit, correctPrimes) {
+            numberGrid.innerHTML = '';
+            for (let i = 2; i <= limit; i++) {
+                const box = document.createElement('div');
+                box.className = 'num-box';
+                box.textContent = i;
+                box.dataset.number = i;
+                box.onclick = () => handleSelection(i, correctPrimes, box);
+                numberGrid.appendChild(box);
+            }
+        }
+
+        function loadQuestion() {
+            if (currentSetIndex >= gameSets.length) {
+                endGame();
+                return;
+            }
+            
+            const qData = gameSets[currentSetIndex];
+            questionDisplay.innerHTML = `اعداد اول بین ۲ تا ${qData.limit} را انتخاب کنید.`;
+            feedbackDiv.textContent = '';
+            nextBtn.style.display = 'none';
+            
+            generateGrid(qData.limit, qData.correctPrimes);
+            
+            // در این بازی، دکمه 'ادامه' پس از تکمیل مرحله فعال می‌شود
+            nextBtn.style.display = 'block'; 
+            nextBtn.disabled = true; // در ابتدا غیرفعال
+        }
+        
+        let selectedPrimes = new Set();
+        let currentCorrectPrimes;
+
+        function handleSelection(number, correctPrimes, box) {
+            // اجازه کلیک مجدد روی انتخاب‌های قبلی را نمی‌دهیم
+            if (box.classList.contains('prime-correct') || box.classList.contains('composite-wrong')) return;
+
+            const isCorrectPrime = correctPrimes.includes(number);
+            
+            box.classList.add('selected');
+            
+            if (isPrime(number)) {
+                if (isCorrectPrime) {
+                    box.classList.add('prime-correct');
+                    score++;
+                } else {
+                    // این حالت نباید پیش بیاید اگر لیست اعداد اول درست باشد
+                    box.classList.add('composite-wrong'); 
+                    feedbackDiv.textContent = `خطا: ${number} اول است اما در لیست پاسخ شما نیست!`;
+                }
+            } else { // عدد مرکب است
+                if (isCorrectPrime) {
+                    // این حالت نباید پیش بیاید
+                    feedbackDiv.textContent = `خطا: ${number} مرکب است اما شما آن را انتخاب کردید!`;
+                }
+                box.classList.add('composite-wrong');
+            }
+            
+            scoreSpan.textContent = score;
+            
+            // غیر فعال کردن کلیک بعد از انتخاب
+            box.onclick = null; 
+            
+            // اگر کاربر عدد مرکب را انتخاب کرد یا عدد اول صحیح را انتخاب کرد، آن را علامت بزن.
+            // برای سادگی، در این حالت (بازی غربالگری) همه اعداد را یک بار کلیک می‌کنیم و سپس مرحله را تمام می‌کنیم.
+        }
+
+        function nextQuestion() {
+            currentSetIndex++;
+            selectedPrimes.clear();
+            if (currentSetIndex < totalQuestions) {
+                loadQuestion();
+            } else {
+                endGame();
+            }
+        }
+        
+        function endGame() {
+            questionDisplay.textContent = "آفرین! غربالگری کامل شد.";
+            numberGrid.innerHTML = `<p>شما ${score} امتیاز از ${gameSets.reduce((acc, set) => acc + set.correctPrimes.length, 0)} پاسخ صحیح کسب کردید.</p>`;
+            feedbackDiv.textContent = "بازی‌های غربالگری تمام شد.";
+            nextBtn.style.display = 'none';
+        }
+
+        // شروع بازی
+        loadQuestion();
+    </script>
+</body>
+</html>
